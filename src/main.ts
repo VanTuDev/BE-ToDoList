@@ -40,8 +40,8 @@ async function bootstrap() {
   const port = process.env.PORT || 4000;
 
   try {
-    await app.listen(port);
-    console.log(`[BOOTSTRAP] Server running on port ${port}`);
+    await app.listen(port, '0.0.0.0');
+    console.log(`[BOOTSTRAP] Server running on http://0.0.0.0:${port}`);
     console.log('[BOOTSTRAP] If no MongoDB errors above, connection is OK.');
   } catch (err) {
     console.error('[BOOTSTRAP] Failed to start NestJS application:', err);
