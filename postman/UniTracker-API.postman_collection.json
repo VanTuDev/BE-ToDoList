@@ -1,0 +1,239 @@
+{
+  "info": {
+    "name": "UniTracker API",
+    "description": "Collection test API FPT UniTracker",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000" }
+  ],
+  "item": [
+    {
+      "name": "Data",
+      "item": [
+        {
+          "name": "GET Full State",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/data/state"
+          }
+        },
+        {
+          "name": "POST Seed",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/data/seed"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "GET Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/profile"
+          }
+        },
+        {
+          "name": "PATCH Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nguyen Van A\",\n  \"class\": \"SE18B02\",\n  \"age\": 20,\n  \"studentId\": \"SE171234\",\n  \"email\": \"a@fpt.edu.vn\",\n  \"major\": \"Software Engineering\"\n}"
+            },
+            "url": "{{baseUrl}}/api/profile"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subjects",
+      "item": [
+        {
+          "name": "GET Subjects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/subjects"
+          }
+        },
+        {
+          "name": "POST Create Subject",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"PRJ301\",\n  \"name\": \"Java Web\",\n  \"credits\": 3,\n  \"instructor\": \"Tran Van B\",\n  \"room\": \"DE-A101\"\n}"
+            },
+            "url": "{{baseUrl}}/api/subjects"
+          }
+        },
+        {
+          "name": "PATCH Update Subject",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Java Web Development\",\n  \"room\": \"DE-A102\"\n}"
+            },
+            "url": "{{baseUrl}}/api/subjects/SUBJECT_ID"
+          }
+        },
+        {
+          "name": "DELETE Subject",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/subjects/SUBJECT_ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Timetable",
+      "item": [
+        {
+          "name": "GET Timetable",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/timetable"
+          }
+        },
+        {
+          "name": "POST Create Slot",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectId\": \"SWP391\",\n  \"day\": 0,\n  \"startTime\": \"07:30\",\n  \"endTime\": \"09:30\",\n  \"room\": \"DE-C301\",\n  \"type\": \"lecture\"\n}"
+            },
+            "url": "{{baseUrl}}/api/timetable"
+          }
+        },
+        {
+          "name": "DELETE Timetable Slot",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/timetable/SLOT_ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Daily Tasks",
+      "item": [
+        {
+          "name": "GET Daily Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/daily-tasks"
+          }
+        },
+        {
+          "name": "POST Create Daily Task",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"On bai Java\",\n  \"priority\": \"high\",\n  \"completed\": false,\n  \"createdAt\": \"2026-02-28T16:00:00.000Z\"\n}"
+            },
+            "url": "{{baseUrl}}/api/daily-tasks"
+          }
+        },
+        {
+          "name": "PATCH Toggle Daily Task",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/api/daily-tasks/TASK_ID/toggle"
+          }
+        },
+        {
+          "name": "DELETE Daily Task",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/daily-tasks/TASK_ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Study Schedules",
+      "item": [
+        {
+          "name": "GET Study Schedules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/study-schedules"
+          }
+        },
+        {
+          "name": "POST Create Study Schedule",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectId\": \"SWP391\",\n  \"title\": \"On tap chuong 5\",\n  \"date\": \"2026-03-01\",\n  \"startTime\": \"19:00\",\n  \"endTime\": \"21:00\",\n  \"description\": \"Lam bai tap\"\n}"
+            },
+            "url": "{{baseUrl}}/api/study-schedules"
+          }
+        },
+        {
+          "name": "PATCH Toggle Study Schedule",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/api/study-schedules/SCHEDULE_ID/toggle"
+          }
+        },
+        {
+          "name": "DELETE Study Schedule",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/study-schedules/SCHEDULE_ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Study Tasks",
+      "item": [
+        {
+          "name": "GET Study Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/study-tasks"
+          }
+        },
+        {
+          "name": "PATCH Toggle Study Task",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/api/study-tasks/TASK_ID/toggle"
+          }
+        }
+      ]
+    }
+  ]
+}
