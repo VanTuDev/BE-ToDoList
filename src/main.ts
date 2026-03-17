@@ -30,10 +30,29 @@ async function bootstrap() {
   const fromEnv = corsOrigin
     ? corsOrigin.split(',').map((o) => o.trim()).filter(Boolean)
     : [];
-  const origins = [...new Set([...fromEnv, 'http://localhost:3000', 'http://127.0.0.1:3000'])];
+  const origins = [
+    ...new Set([
+      ...fromEnv,
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'https://fe-to-do-list-six.vercel.app',
+    ]),
+  ];
+
+  // Allow Vercel preview URLs for this project, e.g.
+  // https://fe-to-do-list-six-git-branch-user.vercel.app
+  const vercelPreviewRegex = /^https:\/\/fe-to-do-list-six(?:-[a-z0-9-]+)?\.vercel\.app$/i;
+
   app.enableCors({
-    origin: origins,
-    credentials: true,
+    origin: (origin, callback) => {
+      // Requests without Origin (curl/Postman/server-to-server) should pass
+      if (!origin) return callback(null, true);
+      if (origins.includes(origin)) return callback(null, true);
+      if (vercelPreviewRegex.test(origin)) return callback(null, true);
+      return callback(new Error(`CORS blocked for origin: ${origin}`), false);
+    },
+    // FE đang dùng Bearer token (localStorage) nên không cần credentials/cookie cho CORS
+    credentials: false,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
