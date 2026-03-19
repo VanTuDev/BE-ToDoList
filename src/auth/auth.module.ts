@@ -2,24 +2,27 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { GoogleStrategy } from './strategies/google.strategy';
 import { User, UserSchema } from '../user/user.schema';
 
 /**
- * QUAN TRỌNG: Dùng registerAsync thay vì register để đọc JWT_SECRET
- * SAU KHI ConfigModule đã load file .env vào process.env.
+ * AuthModule – quản lý toàn bộ xác thực:
+ *  • JwtModule.registerAsync  → đọc JWT_SECRET sau khi ConfigModule load .env
+ *  • GoogleStrategy           → Passport Google OAuth 2.0
+ *  • JwtStrategy              → Passport JWT Bearer token
  *
- * Nếu dùng register({ secret: process.env.JWT_SECRET }), giá trị được đọc
- * ngay lúc module file được import (trước khi ConfigModule khởi động),
- * lúc đó process.env.JWT_SECRET chưa có → dùng fallback → mismatch với
- * JwtStrategy (đọc sau khi ConfigModule đã load) → 401 mọi request.
+ * ConfigModule được import riêng để đảm bảo ConfigService có thể inject
+ * vào GoogleStrategy (cần đọc GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL).
  */
 @Module({
   imports: [
+    ConfigModule,
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    PassportModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET || 'unitracker-secret-key',
@@ -27,7 +30,7 @@ import { User, UserSchema } from '../user/user.schema';
       }),
     }),
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, GoogleStrategy],
   controllers: [AuthController],
   exports: [AuthService],
 })

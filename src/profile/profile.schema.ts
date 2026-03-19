@@ -24,6 +24,9 @@ export class Profile {
   email: string;
 
   @Prop({ default: '' })
+  avatar: string;
+
+  @Prop({ default: '' })
   major: string;
 
   @Prop({ default: 'Spring 2026' })

@@ -45,14 +45,14 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Requests without Origin (curl/Postman/server-to-server) should pass
+      // Requests without Origin (curl/Postman/server-to-server/Google redirect) should pass
       if (!origin) return callback(null, true);
       if (origins.includes(origin)) return callback(null, true);
       if (vercelPreviewRegex.test(origin)) return callback(null, true);
       return callback(new Error(`CORS blocked for origin: ${origin}`), false);
     },
-    // FE đang dùng Bearer token (localStorage) nên không cần credentials/cookie cho CORS
-    credentials: false,
+    // credentials: true cần thiết cho Google OAuth redirect flow
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });

@@ -11,6 +11,13 @@ import { Model } from 'mongoose';
 import { hash, compare } from 'bcryptjs';
 import { User, UserDocument } from '../user/user.schema';
 
+export type GoogleUserInput = {
+  googleId: string;
+  email: string;
+  name: string;
+  avatar?: string;
+};
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -94,6 +101,113 @@ export class AuthService {
     }
     const token = this.jwtService.sign({ sub: 'admin', role: 'admin' });
     return { token, userId: 'admin', isAdmin: true };
+  }
+
+  // ─── Google OAuth ────────────────────────────────────────────────────────────
+
+  /**
+   * Tìm hoặc tạo user từ Google profile.
+   * userId = googleId (thay cho phone).
+   *
+   * Thứ tự ưu tiên:
+   *  1. Tìm theo googleId (user đã login Google trước đó)
+   *  2. Tìm theo email (user đã đăng ký phone có cùng email → liên kết tài khoản)
+   *  3. Tạo mới hoàn toàn
+   */
+  async findOrCreateGoogleUser(data: GoogleUserInput) {
+    // 1. Tìm theo googleId
+    const byGoogle = await this.userModel
+      .findOne({ googleId: data.googleId })
+      .lean();
+    if (byGoogle) {
+      return this._buildToken(data.googleId);
+    }
+
+    // 2. Tìm theo email → liên kết Google vào tài khoản hiện có
+    if (data.email) {
+      const byEmail = await this.userModel
+        .findOne({ email: data.email })
+        .lean();
+      if (byEmail) {
+        await this.userModel.updateOne(
+          { email: data.email },
+          { googleId: data.googleId, name: data.name, avatar: data.avatar ?? '' },
+        );
+        return this._buildToken(data.googleId);
+      }
+    }
+
+    // 3. Tạo user mới (không có phone, không có passwordHash)
+    await this.userModel.create({
+      googleId: data.googleId,
+      email: data.email,
+      name: data.name,
+      avatar: data.avatar ?? '',
+      passwordHash: '',
+    });
+    return this._buildToken(data.googleId);
+  }
+
+  // ─── User info & Account setup ──────────────────────────────────────────────
+
+  /**
+   * Trả về thông tin tài khoản của user hiện tại (từ bảng users).
+   * Dùng để FE biết user là Google hay Phone, đã set up chưa, v.v.
+   */
+  async getUserInfo(userId: string) {
+    const user = await this.userModel
+      .findOne({ $or: [{ googleId: userId }, { phone: userId }] })
+      .lean() as {
+        phone?: string;
+        email?: string;
+        name?: string;
+        avatar?: string;
+        googleId?: string;
+        passwordHash?: string;
+      } | null;
+
+    if (!user) throw new UnauthorizedException('User not found');
+
+    return {
+      phone: user.phone ?? null,
+      email: user.email ?? '',
+      name: user.name ?? '',
+      avatar: user.avatar ?? '',
+      isGoogleUser: !!user.googleId,
+      hasPhone: !!user.phone,
+      hasPassword: !!(user.passwordHash && user.passwordHash.length > 0),
+    };
+  }
+
+  /**
+   * Cho phép Google user thêm số điện thoại + mật khẩu vào tài khoản của họ.
+   * Sau khi setup xong, user có thể đăng nhập bằng cả Google lẫn phone/password.
+   */
+  async setupAccount(googleUserId: string, phone: string, password: string) {
+    const normalized = this.normalizePhone(phone);
+
+    if (!normalized || normalized.length < 9) {
+      throw new BadRequestException('Số điện thoại không hợp lệ (tối thiểu 9 chữ số).');
+    }
+    if (!password || String(password).length < 6) {
+      throw new BadRequestException('Mật khẩu phải có ít nhất 6 ký tự.');
+    }
+
+    // Kiểm tra SĐT chưa được dùng bởi tài khoản khác
+    const taken = await this.userModel
+      .findOne({ phone: normalized, googleId: { $ne: googleUserId } })
+      .lean();
+    if (taken) {
+      throw new ConflictException('Số điện thoại này đã được đăng ký bởi tài khoản khác.');
+    }
+
+    const passwordHash = await hash(password, 10);
+    await this.userModel.updateOne(
+      { googleId: googleUserId },
+      { $set: { phone: normalized, passwordHash } },
+    );
+
+    return { success: true, message: 'Đã lưu số điện thoại và mật khẩu.' };
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────────────

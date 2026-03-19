@@ -2,31 +2,42 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Profile, ProfileDocument } from './profile.schema';
+import { User, UserDocument } from '../user/user.schema';
 
 @Injectable()
 export class ProfileService {
   constructor(
     @InjectModel(Profile.name) private profileModel: Model<ProfileDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
+  /**
+   * Lấy profile theo userId. Nếu chưa có, tạo mới.
+   * Với Google user: tự động điền name, email, avatar từ bảng users.
+   */
   async getOrCreate(userId: string) {
-    let doc: Record<string, unknown> | null = await this.profileModel.findOne({ userId }).lean() as Record<string, unknown> | null;
-    if (!doc) {
-      const created = await this.profileModel.create({
-        userId,
-        name: '',
-        class: '',
-        age: 0,
-        studentId: '',
-        email: '',
-        major: '',
-        semester: 'Spring 2026',
-        campus: 'FPT University HCM',
-        gpa: 0,
-      });
-      doc = created.toObject() as unknown as Record<string, unknown>;
-    }
-    return this.toResponse(doc);
+    const existing = await this.profileModel.findOne({ userId }).lean() as Record<string, unknown> | null;
+    if (existing) return this.toResponse(existing);
+
+    // Lấy thông tin Google (hoặc phone user) từ bảng users để pre-fill
+    const user = await this.userModel
+      .findOne({ $or: [{ googleId: userId }, { phone: userId }] })
+      .lean() as { name?: string; email?: string; avatar?: string } | null;
+
+    const created = await this.profileModel.create({
+      userId,
+      name: user?.name || '',
+      class: '',
+      age: 0,
+      studentId: '',
+      email: user?.email || '',
+      avatar: user?.avatar || '',
+      major: '',
+      semester: 'Spring 2026',
+      campus: 'FPT University HCM',
+      gpa: 0,
+    });
+    return this.toResponse(created.toObject() as unknown as Record<string, unknown>);
   }
 
   async update(userId: string, data: Record<string, unknown>) {
@@ -50,6 +61,7 @@ export class ProfileService {
       age: d.age ?? 0,
       studentId: d.studentId ?? '',
       email: d.email ?? '',
+      avatar: d.avatar ?? '',
       major: d.major ?? '',
       semester: d.semester ?? 'Spring 2026',
       campus: d.campus ?? 'FPT University HCM',
