@@ -17,7 +17,25 @@ export class ProfileService {
    */
   async getOrCreate(userId: string) {
     const existing = await this.profileModel.findOne({ userId }).lean() as Record<string, unknown> | null;
-    if (existing) return this.toResponse(existing);
+    if (existing) {
+      // Nếu profile đã có nhưng name còn trống, thử sync từ Google user
+      if (!existing.name) {
+        const user = await this.userModel
+          .findOne({ $or: [{ googleId: userId }, { phone: userId }] })
+          .lean() as { name?: string; email?: string; avatar?: string } | null;
+        if (user?.name) {
+          const updated = await this.profileModel
+            .findOneAndUpdate(
+              { userId },
+              { $set: { name: user.name, email: user.email || existing.email, avatar: user.avatar || existing.avatar } },
+              { new: true },
+            )
+            .lean() as Record<string, unknown> | null;
+          return this.toResponse(updated ?? existing);
+        }
+      }
+      return this.toResponse(existing);
+    }
 
     // Lấy thông tin Google (hoặc phone user) từ bảng users để pre-fill
     const user = await this.userModel
