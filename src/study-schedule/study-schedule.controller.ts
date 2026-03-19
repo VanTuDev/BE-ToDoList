@@ -1,29 +1,33 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { StudyScheduleService } from './study-schedule.service';
-
-const DEMO_USER_ID = process.env.DEMO_USER_ID || 'demo-user';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUserId } from '../auth/current-user.decorator';
 
 @Controller('api/study-schedules')
+@UseGuards(JwtAuthGuard)
 export class StudyScheduleController {
   constructor(private readonly studyScheduleService: StudyScheduleService) {}
 
   @Get()
-  async findAll() {
-    return this.studyScheduleService.findAll(DEMO_USER_ID);
+  async findAll(@CurrentUserId() userId: string) {
+    return this.studyScheduleService.findAll(userId);
   }
 
   @Post()
-  async create(@Body() body: Record<string, unknown>) {
-    return this.studyScheduleService.create(DEMO_USER_ID, body);
+  async create(
+    @CurrentUserId() userId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.studyScheduleService.create(userId, body);
   }
 
   @Patch(':id/toggle')
-  async toggle(@Param('id') id: string) {
-    return this.studyScheduleService.toggle(id, DEMO_USER_ID);
+  async toggle(@Param('id') id: string, @CurrentUserId() userId: string) {
+    return this.studyScheduleService.toggle(id, userId);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.studyScheduleService.remove(id, DEMO_USER_ID);
+  async remove(@Param('id') id: string, @CurrentUserId() userId: string) {
+    return this.studyScheduleService.remove(id, userId);
   }
 }

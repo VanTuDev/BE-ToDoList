@@ -22,5 +22,7 @@ import { StudyTaskModule } from '../study-task/study-task.module';
   ],
   controllers: [DataController],
   providers: [DataService, SeedService],
+  // Export DataService để các module khác (AdminModule) có thể dùng
+  exports: [DataService],
 })
 export class DataModule {}

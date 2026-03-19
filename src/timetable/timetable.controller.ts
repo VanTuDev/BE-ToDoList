@@ -1,23 +1,28 @@
-import { Controller, Get, Post, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { TimetableService } from './timetable.service';
-const DEMO_USER_ID = process.env.DEMO_USER_ID || 'demo-user';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUserId } from '../auth/current-user.decorator';
 
 @Controller('api/timetable')
+@UseGuards(JwtAuthGuard)
 export class TimetableController {
   constructor(private readonly timetableService: TimetableService) {}
 
   @Get()
-  async findAll() {
-    return this.timetableService.findAll(DEMO_USER_ID);
+  async findAll(@CurrentUserId() userId: string) {
+    return this.timetableService.findAll(userId);
   }
 
   @Post()
-  async create(@Body() body: Record<string, unknown>) {
-    return this.timetableService.create(DEMO_USER_ID, body);
+  async create(
+    @CurrentUserId() userId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.timetableService.create(userId, body);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.timetableService.remove(id, DEMO_USER_ID);
+  async remove(@Param('id') id: string, @CurrentUserId() userId: string) {
+    return this.timetableService.remove(id, userId);
   }
 }

@@ -1,6 +1,8 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { DataService } from './data.service';
 import { SeedService } from './seed.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUserId } from '../auth/current-user.decorator';
 
 @Controller('api/data')
 export class DataController {
@@ -10,9 +12,9 @@ export class DataController {
   ) {}
 
   @Get('state')
-  async getFullState() {
-    const demoUserId = process.env.DEMO_USER_ID || 'demo-user';
-    return this.dataService.getFullState(demoUserId);
+  @UseGuards(JwtAuthGuard)
+  async getFullState(@CurrentUserId() userId: string) {
+    return this.dataService.getFullState(userId);
   }
 
   /** Seed user demo (0399604816) + profile + môn học + TKB. Chỉ thêm cho user đó, không ảnh hưởng user khác. */
