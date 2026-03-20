@@ -80,11 +80,12 @@ export class CommunityService {
       .find({
         $nor: [{ phone: currentUserId }, { googleId: currentUserId }],
       })
-      .select({ phone: 1, googleId: 1, name: 1, avatar: 1, _id: 0 })
+      .select({ phone: 1, googleId: 1, name: 1, email: 1, avatar: 1, _id: 0 })
       .lean() as {
       phone?: string;
       googleId?: string;
       name?: string;
+      email?: string;
       avatar?: string;
     }[];
 
@@ -122,8 +123,14 @@ export class CommunityService {
 
         return {
           userId: canonicalUserId,
+          // Các key phụ để FE có thể ẩn "bạn bè" ngay cả khi friendRequest lưu theo phone/googleId khác nhau
+          phoneId: u.phone || '',
+          googleId: u.googleId || '',
           // Nếu profile chưa có name thì fallback sang tên Google trong bảng users
-          displayName: p?.name || u.name || '',
+          displayName:
+            p?.name ||
+            u.name ||
+            (u.email ? String(u.email).split('@')[0] : ''),
           class: p?.class || '',
           major: p?.major || '',
           studentId: p?.studentId || '',
