@@ -75,24 +75,63 @@ export class CommunityService {
   // ─── Users ──────────────────────────────────────────────────────────────────
 
   async getUsers(currentUserId: string) {
+    // Lấy tất cả user (cả phone và Google), loại trừ bản thân
     const users = await this.userModel
-      .find({ phone: { $ne: currentUserId } })
-      .select({ phone: 1, _id: 0 })
-      .lean();
-    const userIds = users.map((u) => String((u as { phone?: string }).phone ?? ''));
+      .find({
+        $nor: [{ phone: currentUserId }, { googleId: currentUserId }],
+      })
+      .select({ phone: 1, googleId: 1, name: 1, avatar: 1, _id: 0 })
+      .lean() as {
+      phone?: string;
+      googleId?: string;
+      name?: string;
+      avatar?: string;
+    }[];
+
+    // userId dùng cho community nên ưu tiên googleId để khớp token Google (sub=googleId)
+    const userIds = users
+      .map((u) => u.googleId || u.phone || '')
+      .filter(Boolean);
+
+    // Lấy profile theo cả 2 khóa (googleId và phone) để xử lý dữ liệu cũ/không đồng nhất
+    const candidateIds = Array.from(
+      new Set(
+        users.flatMap((u) => [u.googleId, u.phone]).filter(Boolean) as string[],
+      ),
+    );
+
     const profiles = await this.profileModel
-      .find({ userId: { $in: userIds } })
-      .select({ userId: 1, name: 1, class: 1, major: 1, _id: 0 })
-      .lean();
+      .find({ userId: { $in: candidateIds } })
+      .select({ userId: 1, name: 1, class: 1, major: 1, studentId: 1, avatar: 1, _id: 0 })
+      .lean() as {
+        userId: string; name?: string; class?: string;
+        major?: string; studentId?: string; avatar?: string;
+      }[];
+
     const profileMap = new Map(profiles.map((p) => [p.userId, p]));
-    return userIds
-      .filter(Boolean)
-      .map((uid) => ({
-        userId: uid,
-        displayName: profileMap.get(uid)?.name || `Người dùng ${uid.slice(-4)}`,
-        class: profileMap.get(uid)?.class || '',
-        major: profileMap.get(uid)?.major || '',
-      }));
+
+    return users
+      .map((u) => {
+        const canonicalUserId = u.googleId || u.phone || '';
+        if (!canonicalUserId) return null;
+
+        // Ưu tiên profile theo canonical id, fallback sang id còn lại
+        const p =
+          profileMap.get(canonicalUserId) ||
+          (u.googleId ? profileMap.get(u.phone ?? '') : profileMap.get(u.googleId ?? ''));
+
+        return {
+          userId: canonicalUserId,
+          // Nếu profile chưa có name thì fallback sang tên Google trong bảng users
+          displayName: p?.name || u.name || '',
+          class: p?.class || '',
+          major: p?.major || '',
+          studentId: p?.studentId || '',
+          // avatar ưu tiên profile, fallback avatar từ users
+          avatar: p?.avatar || u.avatar || '',
+        };
+      })
+      .filter(Boolean);
   }
 
   // ─── Friends ────────────────────────────────────────────────────────────────
@@ -155,12 +194,13 @@ export class CommunityService {
     );
     const profiles = await this.profileModel
       .find({ userId: { $in: friendIds } })
-      .select({ userId: 1, name: 1, _id: 0 })
-      .lean();
+      .select({ userId: 1, name: 1, avatar: 1, _id: 0 })
+      .lean() as { userId: string; name?: string; avatar?: string }[];
     const profileMap = new Map(profiles.map((p) => [p.userId, p]));
     return friendIds.map((fid) => ({
       userId: fid,
-      displayName: profileMap.get(fid)?.name || `Người dùng ${fid.slice(-4)}`,
+      displayName: profileMap.get(fid)?.name || '',
+      avatar: profileMap.get(fid)?.avatar || '',
     }));
   }
 
